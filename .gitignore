@@ -1,0 +1,48 @@
+# Python specific ignores
+# Byte-code files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+# This is crucial! Your virtual environment should NOT be committed.
+# It contains platform-specific binaries and can be very large.
+env/
+venv/
+
+# Environment variables (sensitive data)
+# If you use a .env file for database credentials, API keys, etc.
+.env
+*.env
+
+# IDE specific files
+# VS Code
+.vscode/
+
+# Operating System Files
+.DS_Store # macOS specific
+Thumbs.db # Windows specific
+
+# Log files
+*.log
+*.tmp
+
+# Captured faces directory
+# This directory contains images captured by the system.
+# You typically don't want to version control these.
+captured_faces/
+
+# Dlib and large model files
+# IMPORTANT: If these files are very large (e.g., > 50-100 MB),
+# you might want to uncomment these lines and manage them via Git LFS
+# or provide download instructions in your README.md.
+# If they are small enough, keep them commented out (or remove these lines)
+# so they are included in your Git repository.
+# model/shape_predictor_68_face_landmarks.dat
+# model/dlib_face_recognition_resnet_model_v1.dat
+
+# Database files (if you're using a local SQLite or similar, not PostgreSQL)
+# If your PostgreSQL database is external or managed by Docker, you don't need this.
+# *.db
+# *.sqlite
