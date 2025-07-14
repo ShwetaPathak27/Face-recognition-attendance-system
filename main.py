@@ -96,7 +96,7 @@ def connect_milvus_client_global():
             milvus_client.create_collection(
                 collection_name=COLLECTION_NAME,
                 schema=schema,
-                shards_num=2 # Example shard number
+                shards_num=2 
             )
             print(f"✅ Collection '{COLLECTION_NAME}' created.")
             
@@ -104,9 +104,9 @@ def connect_milvus_client_global():
             index_params = milvus_client.prepare_index_params()
             index_params.add_index(
                 field_name="embedding", 
-                index_type="IVF_FLAT", # Or "HNSW" for better performance, but more memory
+                index_type="IVF_FLAT", 
                 metric_type=MILVUS_METRIC_TYPE,
-                params={"nlist": 128} # For IVF_FLAT
+                params={"nlist": 128} 
             )
             milvus_client.create_index(
                 collection_name=COLLECTION_NAME,
@@ -127,7 +127,7 @@ def connect_db_global():
     """Connects to PostgreSQL globally when the app starts."""
     global db_connection_pool
     try:
-        # For simplicity, using a single connection. For production, consider `psycopg2.pool`
+        
         conn = psycopg2.connect(
             host=DB_HOST,
             port=DB_PORT,
@@ -135,7 +135,7 @@ def connect_db_global():
             user=DB_USER,
             password=DB_PASSWORD
         )
-        conn.autocommit = True # Auto-commit for simple inserts/updates
+        conn.autocommit = True 
         db_connection_pool = conn
         print("✅ Connected to PostgreSQL database.")
         return True
@@ -145,7 +145,7 @@ def connect_db_global():
 
 def get_face_embedding(frame, face):
     """Extracts facial landmarks and generates a 128-D embedding."""
-    # Dlib expects RGB, OpenCV reads BGR
+    
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     shape = sp(rgb_frame, face)
     face_descriptor = facerec.compute_face_descriptor(rgb_frame, shape)
@@ -165,7 +165,7 @@ async def startup_event():
         exit(1)
     if not connect_db_global():
         print("Failed to connect to PostgreSQL. Attendance logging will be disabled.")
-        # Don't exit, but log that DB is not available for logging
+        
     
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -198,13 +198,13 @@ class ProcessFrameRequest(BaseModel):
 
 class ProcessFrameResponse(BaseModel):
     processed_image_data: str # Base64 encoded image with overlays
-    attendance_log: Optional[Dict[str, Any]] = None # Details of any new log
-    dashboard_summary: Dict[str, int] # Updated dashboard summary
+    attendance_log: Optional[Dict[str, Any]] = None 
+    dashboard_summary: Dict[str, int] 
 
 @app.post("/api/process_frame", response_model=ProcessFrameResponse)
 async def process_frame_api(request: ProcessFrameRequest):
     """Receives a single image frame from the frontend, processes it, and returns results."""
-    image_data_b64 = request.image_data.split(',')[1] # Remove "data:image/jpeg;base64," prefix
+    image_data_b64 = request.image_data.split(',')[1] 
     
     current_frame = None
     try:
@@ -213,13 +213,11 @@ async def process_frame_api(request: ProcessFrameRequest):
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if frame is None:
             raise ValueError("Could not decode image data.")
-        current_frame = frame.copy() # Make a copy to draw on
-
+        current_frame = frame.copy() 
         # Convert to RGB for Dlib
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         
-        # Perform face detection and recognition
-        # Use asyncio.to_thread to run CPU-bound Dlib operations in the thread pool
+       
         faces = await asyncio.to_thread(detector, rgb_frame, 0) # 0 for no upsampling
 
         display_text = "No face detected"
@@ -249,7 +247,7 @@ async def process_frame_api(request: ProcessFrameRequest):
                     
                     current_time = datetime.now()
                     
-                    # --- Step 1: Check Cooldown ---
+                    # ---  Check Cooldown ---
                     if user_id in last_recognized_time:
                         time_since_last_log = current_time - last_recognized_time[user_id]
                         if time_since_last_log < timedelta(minutes=COOLDOWN_MINUTES):
@@ -266,17 +264,16 @@ async def process_frame_api(request: ProcessFrameRequest):
                                     last_status = last_status_row[0] if last_status_row else "Unknown"
                                     cursor.close()
                                     display_text = f"{user_id} ({last_status} - Cooldown)"
-                                    display_color = (0, 165, 255) # Orange for cooldown
+                                    display_color = (0, 165, 255) 
                                 except Exception as e:
                                     print(f"Error getting last status during cooldown: {e}")
                                     display_text = f"{user_id} (DB Error)"
-                                    display_color = (0, 0, 255) # Red
+                                    display_color = (0, 0, 255)
                             else:
                                 display_text = f"{user_id} (Cooldown)"
-                                display_color = (0, 165, 255) # Orange
+                                display_color = (0, 165, 255) 
                             
-                            # IMPORTANT: If in cooldown, we stop processing for logging for this frame.
-                            # The rest of the function for logging will only run if NOT in cooldown.
+                            
                             x1, y1, x2, y2 = face.left(), face.top(), face.right(), face.bottom()
                             cv2.rectangle(current_frame, (x1, y1), (x2, y2), display_color, 2)
                             cv2.putText(current_frame, display_text, (x1, y1 - 10), 
@@ -294,10 +291,9 @@ async def process_frame_api(request: ProcessFrameRequest):
                                 attendance_log=None, # No new log in cooldown
                                 dashboard_summary=dashboard_summary_data
                             )
-                    # else: Cooldown passed, proceed to determine new_status and log
-                    # else: No previous log, proceed to determine new_status and log
+                   
 
-                    # --- Step 2: Determine New Status and Log (Only if NOT in Cooldown) ---
+                    # ---  Determine New Status and Log (Only if NOT in Cooldown) ---
                     new_status = "IN" # Default for first entry or after OUT
 
                     if db_connection_pool:
@@ -315,9 +311,9 @@ async def process_frame_api(request: ProcessFrameRequest):
                                 last_status_from_db = last_entry_today[0]
                                 if last_status_from_db == "IN":
                                     new_status = "OUT"
-                                else: # last_status was "OUT" or other (e.g., if table was empty before)
+                                else:
                                     new_status = "IN"
-                            # Else: if no entry today, new_status remains "IN" (default)
+                            
 
                             # Log the entry to DB
                             try:
@@ -327,10 +323,10 @@ async def process_frame_api(request: ProcessFrameRequest):
                                     (user_id, new_status)
                                 )
                                 print(f"✅ Attendance logged for {user_id} - {new_status} at {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-                                last_recognized_time[user_id] = current_time # Update last logged time for cooldown
+                                last_recognized_time[user_id] = current_time 
 
                                 display_text = f"{user_id} - {new_status}!"
-                                display_color = (0, 255, 0) if new_status == "IN" else (0, 0, 255) # Green for IN, Red for OUT
+                                display_color = (0, 255, 0) if new_status == "IN" else (0, 0, 255) 
                                 logged_attendance_info = {
                                     "user_id": user_id,
                                     "timestamp": current_time.isoformat(),
@@ -339,24 +335,24 @@ async def process_frame_api(request: ProcessFrameRequest):
                             except Exception as e:
                                 print(f"❌ Database logging error for {user_id} ({new_status}): {e}")
                                 display_text = "DB Error!"
-                                display_color = (0, 0, 255) # Red
+                                display_color = (0, 0, 255) 
                             finally:
                                 if cursor: cursor.close()
 
                         except Exception as e:
                             print(f"Error checking DB status for {user_id}: {e}")
                             display_text = f"{user_id} (DB Error)"
-                            display_color = (0, 0, 255) # Red
-                    else: # DB not connected
+                            display_color = (0, 0, 255) 
+                    else: 
                         display_text = f"{user_id} (DB Not Ready)"
-                        display_color = (0, 255, 255) # Yellow
+                        display_color = (0, 255, 255) 
                     
-                else: # Recognition threshold not met
+                else: 
                     display_text = f"Unknown ({distance:.2f})"
-                    display_color = (0, 0, 255) # Red for unknown
-            else: # No match found in Milvus
+                    display_color = (0, 0, 255) 
+            else: 
                 display_text = "No match found in DB"
-                display_color = (0, 0, 255) # Red for no match
+                display_color = (0, 0, 255) 
             
             x1, y1, x2, y2 = face.left(), face.top(), face.right(), face.bottom()
             cv2.rectangle(current_frame, (x1, y1), (x2, y2), display_color, 2)
@@ -364,7 +360,7 @@ async def process_frame_api(request: ProcessFrameRequest):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, display_color, 2)
         elif len(faces) > 1:
             display_text = "Multiple faces detected"
-            display_color = (0, 255, 255) # Yellow
+            display_color = (0, 255, 255) 
             cv2.putText(current_frame, display_text, (10, 30), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, display_color, 2) 
             for face in faces:
@@ -372,7 +368,7 @@ async def process_frame_api(request: ProcessFrameRequest):
                 cv2.rectangle(current_frame, (x1, y1), (x2, y2), display_color, 2)
         else:
             display_text = "No face detected"
-            display_color = (0, 0, 255) # Red
+            display_color = (0, 0, 255) 
             cv2.putText(current_frame, display_text, (10, 30), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, display_color, 2) 
 
@@ -382,7 +378,7 @@ async def process_frame_api(request: ProcessFrameRequest):
             raise ValueError("Failed to encode processed frame to JPEG.")
         processed_image_b64 = base64.b64encode(buffer).decode('utf-8')
 
-        # Get updated dashboard summary
+        
         dashboard_summary_data = await get_dashboard_summary() # Call the async function
 
         return ProcessFrameResponse(
@@ -405,7 +401,7 @@ class EnrollRequest(BaseModel):
 async def enroll_face_api(request: EnrollRequest):
     """Endpoint to enroll a new face."""
     user_id = request.name
-    image_data_b64 = request.image_data.split(',')[1] # Remove "data:image/jpeg;base64," prefix
+    image_data_b64 = request.image_data.split(',')[1] 
     
     try:
         # Decode base64 image
@@ -472,7 +468,7 @@ async def get_attendance_logs(
     end_date: Optional[str] = None,
     user_id: Optional[str] = None,
     status: Optional[str] = None,
-    limit: Optional[int] = None # Added limit parameter
+    limit: Optional[int] = None 
 ):
     """Fetches attendance logs from PostgreSQL with optional filters and limit."""
     if not db_connection_pool:
