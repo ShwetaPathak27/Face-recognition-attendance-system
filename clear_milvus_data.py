@@ -14,10 +14,7 @@ def clear_milvus_collection():
             client.drop_collection(collection_name=COLLECTION_NAME)
             print(f"✅ Collection '{COLLECTION_NAME}' dropped successfully.")
             
-            # Recreate the collection with the correct schema immediately
-            # You might need to import FieldSchema, CollectionSchema, DataType from pymilvus
-            # Or simply run your `create_milvus_collection.py` script after this.
-            # For simplicity, I'll recommend running your original create script.
+            
             print(f"Please now run your 'create_milvus_collection.py' script to re-create the collection.")
         else:
             print(f"Collection '{COLLECTION_NAME}' does not exist. Nothing to clear.")
