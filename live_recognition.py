@@ -8,11 +8,11 @@ import numpy as np
 import threading
 from pymilvus import MilvusClient, DataType
 
-# --- NEW IMPORTS FOR POSTGRESQL ---
+# -- IMPORTS FOR POSTGRESQL ---
 import psycopg2
 from datetime import datetime, timedelta
 import os
-# --- END NEW IMPORTS ---
+
 
 # --- Configuration ---
 MILVUS_HOST = "milvus-standalone"
@@ -33,16 +33,16 @@ frame_counter = 0
 recognized_id_or_name = "Detecting..."
 display_color = (255, 255, 0)
 
-# --- NEW: PostgreSQL Configuration ---
-# Ensure these match your PostgreSQL setup
-DB_HOST = os.getenv("DB_HOST", "postgres_db") # Use service name if Postgres is in Docker Compose
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "attendance_db") # <--- UPDATE THIS
-DB_USER = os.getenv("DB_USER", "attendance_user")     # <--- UPDATE THIS
-DB_PASSWORD = os.getenv("DB_PASSWORD", "shwetapathak") # <--- UPDATE THIS
+# --- PostgreSQL Configuration ---
 
-COOLDOWN_MINUTES = 1 # Your 1-minute debouncing period
-# --- END NEW: PostgreSQL Configuration ---
+DB_HOST = os.getenv("DB_HOST", "postgres_db") 
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "attendance_db") 
+DB_USER = os.getenv("DB_USER", "attendance_user")     
+DB_PASSWORD = os.getenv("DB_PASSWORD", "shwetapathak") 
+
+COOLDOWN_MINUTES = 1 #1-minute debouncing period
+
 
 
 def load_dlib_model(predictor_path, face_rec_model_path):
@@ -67,7 +67,7 @@ def connect_and_load_milvus_collection(host, port, collection_name):
         print(f"❌ Milvus connection error: {e}")
         return None
 
-# --- NEW: PostgreSQL Connection Function ---
+# --- PostgreSQL Connection Function ---
 def connect_db():
     try:
         conn = psycopg2.connect(
@@ -82,14 +82,14 @@ def connect_db():
     except Exception as e:
         print(f"❌ Error connecting to PostgreSQL: {e}")
         return None
-# --- END NEW: PostgreSQL Connection Function ---
+# --- END  PostgreSQL Connection Function ---
 
 def get_face_embedding(frame, face, shape_predictor, face_recognizer):
     shape = shape_predictor(frame, face)
     face_descriptor = face_recognizer.compute_face_descriptor(frame, shape)
     return np.array(face_descriptor).astype(np.float32)
 
-# --- MODIFIED: recognize_face_in_milvus to accept db_connection ---
+
 def recognize_face_in_milvus(milvus_client, live_embedding, db_connection):
     global recognized_id_or_name, display_color
     try:
@@ -108,7 +108,7 @@ def recognize_face_in_milvus(milvus_client, live_embedding, db_connection):
             if (MILVUS_METRIC_TYPE == "L2" and distance < RECOGNITION_THRESHOLD) or \
                (MILVUS_METRIC_TYPE == "COSINE" and distance < RECOGNITION_THRESHOLD):
                 
-                # --- NEW: Attendance Logging Logic ---
+                
                 if db_connection:
                     cursor = db_connection.cursor()
                     try:
@@ -121,53 +121,49 @@ def recognize_face_in_milvus(milvus_client, live_embedding, db_connection):
                         last_entry = cursor.fetchone()
 
                         if not last_entry:
-                            # No recent entry, so insert a new one
+                            
                             cursor.execute(
                                 "INSERT INTO attendance_logs (user_id, status) VALUES (%s, %s)",
-                                (user_id, 'IN') # You can change 'IN' to 'PRESENT' or add 'OUT' logic later
+                                (user_id, 'IN') 
                             )
                             db_connection.commit()
                             print(f"✅ Attendance recorded for {user_id} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
                             
-                            # Update display for a few seconds to show "IN!"
+                            
                             recognized_id_or_name = f"{user_id} - IN!"
-                            display_color = (0, 255, 0) # Green for IN
+                            display_color = (0, 255, 0) 
                         else:
                             print(f"ℹ️ {user_id} already recorded within last {COOLDOWN_MINUTES} minute(s). Skipping.")
-                            # Update display to show they are present but not re-recorded
+                            
                             recognized_id_or_name = f"{user_id} - Present"
-                            display_color = (0, 165, 255) # Orange for Present
+                            display_color = (0, 165, 255) 
                     except Exception as db_e:
-                        db_connection.rollback() # Rollback in case of error
+                        db_connection.rollback() 
                         print(f"❌ Database operation error: {db_e}")
                         recognized_id_or_name = "DB Error!"
-                        display_color = (0, 0, 255) # Red for errors
+                        display_color = (0, 0, 255) 
                     finally:
                         cursor.close()
-                else: # If DB connection failed
-                    recognized_id_or_name = f"{user_id} ({distance:.2f})" # Still show recognition
+                else: 
+                    recognized_id_or_name = f"{user_id} ({distance:.2f})" 
                     display_color = (0, 255, 0)
                     print(f"DEBUG: Matched: {recognized_id_or_name}. Distance: {distance:.2f}, Threshold: {RECOGNITION_THRESHOLD:.2f} (DB not connected)")
-                # --- END NEW: Attendance Logging Logic ---
+                
 
-            else: # No strong match found (distance >= threshold)
+            else: 
                 recognized_id_or_name = f"Unknown ({distance:.2f})"
                 display_color = (0, 0, 255)
                 print(f"DEBUG: No strong match found. Distance: {distance:.2f}, Threshold: {RECOGNITION_THRESHOLD:.2f}. Label: {recognized_id_or_name}")
-        else: # Milvus search returned no hits at all
+        else: 
             recognized_id_or_name = "No match found in DB"
             display_color = (0, 0, 255)
-            # print(f"DEBUG: Milvus search returned no hits. Displaying: {recognized_id_or_name}") # Uncomment if needed
+            
     except Exception as e:
         print(f"❌ Milvus search error: {e}")
         recognized_id_or_name = "Error"
         display_color = (0, 0, 255)
 
-# --- REMOVED THIS LINE from recognize_face_in_milvus ---
-# print(f"DEBUG: Milvus search result: {recognized_id_or_name}")
-# --- END REMOVAL ---
 
-# --- MODIFIED: run_live_face_recognition to handle DB connection ---
 def run_live_face_recognition():
     global recognized_id_or_name, display_color, frame_counter
 
@@ -179,13 +175,11 @@ def run_live_face_recognition():
     if not milvus_client:
         return
 
-    # --- NEW: Connect to PostgreSQL ---
+    # -- Connect to PostgreSQL ---
     db_connection = connect_db()
     if not db_connection:
         print("❌ Failed to connect to database. Recognition will proceed without attendance logging.")
-        # Decide if you want to exit here if DB connection is mandatory
-        # return
-    # --- END NEW ---
+        
 
     STREAMER_HOST = 'host.docker.internal'
     STREAMER_PORT = 8001
@@ -197,10 +191,10 @@ def run_live_face_recognition():
         print("✅ Connected to webcam streamer.")
     except Exception as e:
         print(f"❌ Streamer connection failed: {e}")
-        # --- NEW: Close DB connection if streamer fails ---
+       
         if db_connection:
             db_connection.close()
-        # --- END NEW ---
+        
         return
 
     data = b""
@@ -217,10 +211,10 @@ def run_live_face_recognition():
                 packet = client_socket.recv(4096)
                 if not packet:
                     print("Streamer disconnected.")
-                    # --- NEW: Close DB connection if streamer disconnects ---
+                    
                     if db_connection:
                         db_connection.close()
-                    # --- END NEW ---
+                    
                     return
                 data += packet
 
@@ -242,7 +236,7 @@ def run_live_face_recognition():
 
             frame_counter += 1
             if frame_counter % SKIP_FRAMES != 0:
-                # Just display
+                
                 display_frame = cv2.resize(
                     original_frame,
                     (int(original_frame.shape[1] * scale_factor), int(original_frame.shape[0] * scale_factor)),
@@ -278,9 +272,9 @@ def run_live_face_recognition():
 
                 # Generate embedding and recognize
                 embedding = get_face_embedding(original_frame, dlib.rectangle(x1, y1, x2, y2), sp, facerec)
-                # --- MODIFIED: Pass db_connection to the thread ---
+               
                 threading.Thread(target=recognize_face_in_milvus, args=(milvus_client, embedding, db_connection)).start()
-                # --- END MODIFIED ---
+                
 
             # Display scaled up
             display_frame = cv2.resize(
@@ -308,14 +302,14 @@ def run_live_face_recognition():
             except Exception as e:
                 print(f"Warning: Could not release Milvus collection: {e}")
             milvus_client.close()
-        # --- NEW: Close DB connection ---
+       
         if db_connection:
             try:
                 db_connection.close()
                 print("✅ PostgreSQL connection closed.")
             except Exception as e:
                 print(f"Warning: Could not close PostgreSQL connection: {e}")
-        # --- END NEW ---
+       
         print("✅ Resources cleaned. Goodbye.")
 
 if __name__ == "__main__":
