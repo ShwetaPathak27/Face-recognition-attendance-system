@@ -61,19 +61,19 @@ services:
       retries: 3
 
   postgres_db:
-    image: postgres:13 # Using a stable PostgreSQL version
+    image: postgres:13 
     container_name: postgres_db
     environment:
       POSTGRES_DB: attendance_db # <--- You can change this database name
       POSTGRES_USER: attendance_user # <--- You can change this username
       POSTGRES_PASSWORD: shwetapathak # <--- IMPORTANT: CHANGE THIS TO A STRONG PASSWORD
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Persistent data for PostgreSQL
+      - postgres_data:/var/lib/postgresql/data 
     ports:
-      - "5432:5432" # Expose Postgres port to host (optional, but useful for connecting with external tools like DBeaver)
+      - "5432:5432" 
     networks:
-      - milvus # Connect to the same network as your app
-    healthcheck: # Healthcheck to ensure DB is ready
+      - milvus 
+    healthcheck: 
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
@@ -89,7 +89,7 @@ services:
     volumes:
       - ./face_data:/app/face_data
       - ./model:/app/model
-      - ./static:/app/static # Ensure static files are mounted
+      - ./static:/app/static 
     depends_on:
       milvus-standalone:
         condition: service_healthy
