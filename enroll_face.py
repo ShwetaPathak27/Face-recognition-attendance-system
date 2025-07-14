@@ -6,13 +6,13 @@ from pymilvus import MilvusClient, DataType, FieldSchema, CollectionSchema
 import os
 
 # --- Configuration ---
-MILVUS_HOST = "localhost" # Milvus is typically exposed on localhost for Windows host
-MILVUS_PORT = "19530" # Your Milvus gRPC port
-COLLECTION_NAME = "face_embeddings" # <-- IMPORTANT: This MUST match your Milvus collection name
-DIMENSION = 128 # Must match the dimension used by your dlib face recognition model
+MILVUS_HOST = "localhost" 
+MILVUS_PORT = "19530" 
+COLLECTION_NAME = "face_embeddings" 
+DIMENSION = 128 
 
 # Paths to Dlib models on your Windows machine
-# Make sure these model files (.dat) are in a 'model' folder next to this script
+
 PREDICTOR_PATH = "model/shape_predictor_68_face_landmarks.dat"
 FACE_RECOCOGNITION_MODEL_PATH = "model/dlib_face_recognition_resnet_model_v1.dat"
 
@@ -33,7 +33,7 @@ def load_dlib_model(predictor_path, face_rec_model_path):
         return None, None, None
         
     try:
-        detector = dlib.get_frontal_face_detector() # Using the standard HOG detector
+        detector = dlib.get_frontal_face_detector() 
         sp = dlib.shape_predictor(predictor_path)
         facerec = dlib.face_recognition_model_v1(face_rec_model_path)
         print("✅ Dlib model loaded successfully.")
@@ -51,7 +51,7 @@ def connect_milvus_client(host, port):
     """
     client = None
     try:
-        # Using tcp:// for MilvusClient as per standard gRPC connection
+        
         client = MilvusClient(uri=f"tcp://{host}:{port}") 
         print("✅ Connected to Milvus.")
         return client
@@ -89,7 +89,7 @@ def enroll_new_face():
         print("Exiting due to Milvus connection failure.")
         return
     
-    # --- UPDATED Milvus Collection and Schema Check ---
+    
     try:
         # Check if collection exists
         if not milvus_client.has_collection(collection_name=COLLECTION_NAME):
@@ -98,18 +98,18 @@ def enroll_new_face():
             milvus_client.close() # Close client before exiting
             return
 
-        # Simplified schema check for MilvusClient 2.x
-        # We rely on has_collection and assume create_milvus_collection.py ensures correct schema.
+        
+        
         print(f"✅ Collection '{COLLECTION_NAME}' verified (exists).")
 
     except Exception as e:
         print(f"Error checking Milvus collection existence: {e}")
         milvus_client.close() # Close client before exiting
         return
-    # --- END UPDATED Milvus Collection and Schema Check ---
+    
 
     # Initialize webcam
-    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) # Use cv2.CAP_DSHOW for better compatibility on Windows
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW) 
     if not cap.isOpened():
         print("❌ Error: Could not open webcam on Windows host. Ensure no other app is using it.")
         milvus_client.close() # Close client before exiting
@@ -131,7 +131,7 @@ def enroll_new_face():
             faces = detector(gray, 1) # Detect faces
 
             if len(faces) == 1:
-                # Draw green rectangle if exactly one face is detected
+                
                 face = faces[0]
                 x1, y1, x2, y2 = face.left(), face.top(), face.right(), face.bottom()
                 cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -143,7 +143,7 @@ def enroll_new_face():
             else:
                 cv2.putText(display_frame, "Multiple faces detected", (50, 50), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-                # Draw yellow rectangles for all detected faces if multiple
+                
                 for face in faces:
                     x1, y1, x2, y2 = face.left(), face.top(), face.right(), face.bottom()
                     cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 255), 2)
@@ -166,7 +166,7 @@ def enroll_new_face():
                     
                     # Prepare data for Milvus insertion
                     entity = {
-                        "user_id": person_id, # <-- IMPORTANT: Use 'user_id'
+                        "user_id": person_id, 
                         "embedding": embedding.tolist()
                     }
                     
@@ -176,15 +176,13 @@ def enroll_new_face():
                             data=[entity]
                         )
                         
-                        # --- MODIFICATION START ---
-                        # This line was commented out in your previous code.
-                        # It's crucial to call flush() to ensure data is written to disk and visible.
+            
                         milvus_client.flush(collection_name=COLLECTION_NAME) 
                         print(f"✅ Data flushed for collection '{COLLECTION_NAME}'.")
-                        # --- MODIFICATION END ---
+                        
 
 
-                        # --- UPDATED LOGIC TO GET INSERTED ID ---
+                        
                         print(f"DEBUG: Type of insert_result: {type(insert_result)}")
                         print(f"DEBUG: Content of insert_result: {insert_result}")
                         
@@ -204,13 +202,13 @@ def enroll_new_face():
                         else:
                             print(f"❌ Warning: Insert seemed successful but no primary ID was found in the result structure. Result: {insert_result}")
                             time.sleep(2) # Still give time to read warning
-                        # --- END UPDATED LOGIC ---
+                        
                             
                     except Exception as milvus_e:
                         print(f"❌ Error inserting into Milvus: {milvus_e}")
                         print("Ensure 'user_id' field in Milvus matches exactly, including VARCHAR type and max_length.")
                         milvus_client.close() # Close client on insert error
-                        break # Exit loop on critical error
+                        break 
 
                 else:
                     print("Please ensure exactly one face is visible to save.")
@@ -227,7 +225,7 @@ def enroll_new_face():
         cap.release()
         cv2.destroyAllWindows()
         if milvus_client:
-            # It's good practice to release collection and close client when done
+            
             try:
                 milvus_client.release_collection(COLLECTION_NAME) # Release collection from memory
             except Exception as e:
