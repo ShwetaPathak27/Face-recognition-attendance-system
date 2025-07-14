@@ -83,8 +83,10 @@ Docker Compose
 └── (other_utility_scripts.py)
 
 🎥 Live Demo
+https://www.linkedin.com/posts/shweta-pathak-09a023295
 
 ⚙️ Setup Guide
+
 Follow these steps to get the system up and running on your local machine.
 
 Prerequisites
