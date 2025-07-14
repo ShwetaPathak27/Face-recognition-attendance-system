@@ -38,8 +38,8 @@ def check_milvus_data():
         print(f"🔄 Loading collection '{COLLECTION_NAME}' into Milvus memory...")
         milvus_client.load_collection(collection_name=COLLECTION_NAME)
         print(f"✅ Collection '{COLLECTION_NAME}' loaded successfully.")
-        time.sleep(2) # Give Milvus a moment to complete loading, especially for larger collections
-        # --- END NEW ---
+        time.sleep(2) 
+        
 
         stats = milvus_client.get_collection_stats(collection_name=COLLECTION_NAME)
         num_entities = stats.get('row_count', 0)
@@ -65,11 +65,11 @@ def check_milvus_data():
     except Exception as e:
         print(f"❌ An error occurred while checking Milvus data: {e}")
     finally:
-        # --- NEW: Release the collection from memory when done (good practice) ---
-        if milvus_client and milvus_client.has_collection(collection_name=COLLECTION_NAME): # Check if collection exists before attempting to release
+        
+        if milvus_client and milvus_client.has_collection(collection_name=COLLECTION_NAME): 
              print(f"♻️ Releasing collection '{COLLECTION_NAME}' from Milvus memory.")
              milvus_client.release_collection(collection_name=COLLECTION_NAME)
-        # --- END NEW ---
+        
         if milvus_client:
             milvus_client.close()
             print("Milvus client closed.")
