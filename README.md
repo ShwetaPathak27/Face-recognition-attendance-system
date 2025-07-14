@@ -83,7 +83,7 @@ Docker Compose
 └── (other_utility_scripts.py)
 
 🎥 Live Demo
-https://www.linkedin.com/posts/shweta-pathak-09a023295
+https://www.linkedin.com/posts/shweta-pathak-09a023295_computervision-ai-python-activity-7350449648219697154-KTQ9?
 
 ⚙️ Setup Guide
 
