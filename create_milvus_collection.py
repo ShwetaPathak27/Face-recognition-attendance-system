@@ -1,10 +1,9 @@
-# Script to CREATE the 'face_embeddings' collection (e.g., create_milvus_collection.py)
 from pymilvus import connections, Collection, CollectionSchema, FieldSchema, DataType, utility
 
-MILVUS_HOST = "localhost" # Or "milvus-standalone" if running inside another container
+MILVUS_HOST = "localhost" 
 MILVUS_PORT = "19530"
 COLLECTION_NAME = "face_embeddings"
-EMBEDDING_DIM = 128 # Must match your dlib embedding dimension
+EMBEDDING_DIM = 128 
 
 def create_face_embeddings_collection():
     try:
@@ -24,7 +23,7 @@ def create_face_embeddings_collection():
 
         # Create an index for faster search
         index_params = {
-            "metric_type": "L2", # Or "COSINE" - must match your recognition metric
+            "metric_type": "L2", 
             "index_type": "IVF_FLAT",
             "params": {"nlist": 1024}
         }
